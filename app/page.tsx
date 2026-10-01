@@ -6,7 +6,7 @@ import CandidateRow, { Row } from '@/components/CandidateRow';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Dashboard({ searchParams }: { searchParams: { role?: string } }) {
+export default async function Dashboard({ searchParams }: { searchParams: { role?: string; open?: string } }) {
   const filter = searchParams.role === 'PM' || searchParams.role === 'SPM' ? searchParams.role : 'ALL';
   const results = await Promise.all([
     db.from('candidates').select('id, role_applied, stage, error, pm_score, spm_score'),
@@ -73,7 +73,7 @@ export default async function Dashboard({ searchParams }: { searchParams: { role
           <section key={role}>
             <h2>{role === 'PM' ? 'Product Manager' : 'Senior Product Manager'} <span className="muted" style={{ fontWeight: 400, fontSize: 14 }}>· {rows.length}</span></h2>
             <div className="cols"><span>#</span><span>Score</span><span>Candidate</span><span>{role === 'PM' ? 'SPM' : 'PM'} fit</span><span>Email</span><span></span></div>
-            {rows.map((r, i) => <CandidateRow key={r.id} r={r} rank={i + 1} threshold={SCORE_THRESHOLD} />)}
+            {rows.map((r, i) => <CandidateRow key={r.id} r={r} rank={i + 1} threshold={SCORE_THRESHOLD} defaultOpen={searchParams.open === r.id} />)}
           </section>
         );
       })}

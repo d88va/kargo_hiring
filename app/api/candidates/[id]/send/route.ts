@@ -6,6 +6,7 @@ import { renderBody } from '@/lib/pipeline';
 // The only place an email leaves the system. Triggered only by the founder's button click.
 export async function POST(_: Request, { params }: { params: { id: string } }) {
   const id = params.id;
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM) return NextResponse.json({ error: 'Email sending is not set up yet (add RESEND_API_KEY and RESEND_FROM in Vercel).' }, { status: 503 });
   const [{ data: mail }, { data: pii }] = await Promise.all([
     db.from('emails').select('*').eq('candidate_id', id).single(),
     db.from('candidate_pii').select('name, email').eq('candidate_id', id).single(),

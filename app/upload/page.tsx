@@ -16,19 +16,21 @@ export default function Upload() {
     setItems(files.map((f) => ({ name: f.name, status: 'queued' })));
     const set = (i: number, status: string) => setItems((p) => p.map((x, j) => (j === i ? { ...x, status } : x)));
     let ok = 0;
+    let lastId = '';
     for (let i = 0; i < files.length; i++) {
       set(i, 'reading CV…');
       const fd = new FormData(); fd.set('cv', files[i]); fd.set('role', role);
       const up = await fetch('/api/upload', { method: 'POST', body: fd });
       const j = await up.json();
       if (!up.ok) { set(i, 'failed: ' + j.error); continue; }
+      lastId = j.id;
       set(i, 'scoring, briefing, drafting… (about 30s)');
       const pr = await fetch(`/api/candidates/${j.id}/process`, { method: 'POST' });
       if (pr.ok) ok++;
       set(i, pr.ok ? 'done' : 'failed: ' + (await pr.json()).error + ' (retry from dashboard)');
     }
     setBusy(false);
-    if (ok === files.length) setTimeout(() => { window.location.href = '/'; }, 1200);
+    if (ok === files.length) setTimeout(() => { window.location.href = `/?open=${lastId}`; }, 1200);
   }
 
   return (

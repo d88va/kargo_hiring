@@ -10,7 +10,7 @@ export type Row = {
   mail: { kind: string; subject: string; body: string; sent: boolean } | null;
 };
 
-export default function CandidateRow({ r, rank, threshold }: { r: Row; rank: number; threshold: number }) {
+export default function CandidateRow({ r, rank, threshold, defaultOpen = false }: { r: Row; rank: number; threshold: number; defaultOpen?: boolean }) {
   const router = useRouter();
   const [subject, setSubject] = useState(r.mail?.subject ?? '');
   const [body, setBody] = useState(r.mail?.body ?? '');
@@ -29,6 +29,10 @@ export default function CandidateRow({ r, rank, threshold }: { r: Row; rank: num
   }
   const savePii = async () => { if (await call(`/api/candidates/${r.id}/pii`, 'PATCH', { name, email })) { setMsg('Saved'); router.refresh(); } };
   const retry = async () => { setMsg('Processing…'); if (await call(`/api/candidates/${r.id}/process`, 'POST')) router.refresh(); };
+  const del = async () => {
+    if (!confirm('Delete this candidate and all their data?')) return;
+    if (await call(`/api/candidates/${r.id}`, 'DELETE')) router.refresh();
+  };
   const send = async () => {
     if (!r.mail) return;
     if (!confirm(`Send this ${r.mail.kind} email to ${email}?`)) return;
@@ -44,7 +48,7 @@ export default function CandidateRow({ r, rank, threshold }: { r: Row; rank: num
     : r.mail ? { c: r.mail.kind === 'invite' ? 'invite' : '', t: r.mail.kind === 'invite' ? 'Invite' : 'Rejection' }
     : { c: '', t: '–' };
   return (
-    <details>
+    <details open={defaultOpen}>
       <summary>
         <span className="muted">{rank}</span>
         <span className="scorecell"><b>{r.appliedScore ?? '–'}</b><span className="bar"><i style={{ width: `${r.appliedScore ?? 0}%` }} /></span></span>
@@ -76,6 +80,7 @@ export default function CandidateRow({ r, rank, threshold }: { r: Row; rank: num
             <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" autoComplete="off" name="cand-email" type="text" />
             <button className="sec" disabled={busy} onClick={savePii}>Save</button>
           </div>
+          <p style={{ marginTop: 16 }}><button className="sec" disabled={busy} onClick={del}>Delete candidate</button></p>
         </div>
 
         {r.mail && (
