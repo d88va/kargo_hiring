@@ -5,6 +5,8 @@ import { SCORE_THRESHOLD } from '@/lib/config';
 import CandidateRow, { Row } from '@/components/CandidateRow';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 export default async function Dashboard({ searchParams }: { searchParams: { role?: string; open?: string } }) {
   const filter = searchParams.role === 'PM' || searchParams.role === 'SPM' ? searchParams.role : 'ALL';
