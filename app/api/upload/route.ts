@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   try {
     const raw = await extractText(file);
     if (raw.trim().length < 100) throw new Error('Could not read text from this file (scanned PDF?)');
-    const { pii, redacted } = splitCv(raw);
+    const { pii, redacted } = splitCv(raw, file.name);
 
     const { data: cand, error } = await db.from('candidates')
       .insert({ role_applied: role, cv_text: redacted, cv_filename: null }).select('id').single();

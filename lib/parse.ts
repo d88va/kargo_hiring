@@ -4,7 +4,7 @@ export async function extractText(file: File): Promise<string> {
   if (name.endsWith('.pdf')) {
     const { extractText: pdfText, getDocumentProxy } = await import('unpdf');
     const doc = await getDocumentProxy(new Uint8Array(buf));
-    const { text } = await pdfText(doc, { mergePages: true });
+    const { text } = await pdfText(doc, { mergePages: false });
     return Array.isArray(text) ? text.join('\n') : text;
   }
   if (name.endsWith('.docx')) {
