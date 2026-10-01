@@ -7,7 +7,7 @@ import CandidateRow, { Row } from '@/components/CandidateRow';
 export const dynamic = 'force-dynamic';
 
 export default async function Dashboard() {
-  const [{ data: cands }, { data: pii }, { data: crit }, { data: scores }, { data: briefs }, { data: emails }] = await Promise.all([
+  const results = await Promise.all([
     db.from('candidates').select('id, role_applied, stage, error, pm_score, spm_score'),
     db.from('candidate_pii').select('candidate_id, name, email'),
     db.from('rubric_criteria').select('id, role, position, name, weight'),
@@ -15,6 +15,8 @@ export default async function Dashboard() {
     db.from('briefs').select('candidate_id, body'),
     db.from('emails').select('candidate_id, kind, subject, body_template, body_edited, sent_at'),
   ]);
+  const errors = results.map((r) => r.error?.message).filter(Boolean);
+  const [{ data: cands }, { data: pii }, { data: crit }, { data: scores }, { data: briefs }, { data: emails }] = results;
 
   const byId = <T extends Record<string, any>>(rows: T[] | null, key = 'candidate_id') => new Map((rows ?? []).map((r) => [r[key], r]));
   const piiMap = byId(pii), briefMap = byId(briefs), mailMap = byId(emails);
@@ -40,6 +42,8 @@ export default async function Dashboard() {
 
   return (
     <>
+      {errors.length > 0 && <p className="err">Database error: {errors.join(' | ')}</p>}
+      <p className="muted">{(cands ?? []).length} candidate(s) in database</p>
       {(cands ?? []).length === 0 && <p>No candidates yet. <Link href="/upload">Upload CVs</Link>.</p>}
       {ROLES.map((role) => {
         const rows = (cands ?? []).filter((c: any) => c.role_applied === role).map(build)
