@@ -3,6 +3,7 @@ import { authToken } from '@/lib/auth';
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  if (process.env.OPEN_ACCESS === 'true') return NextResponse.next();
   if (pathname.startsWith('/login') || pathname.startsWith('/api/login')) return NextResponse.next();
   if (!process.env.DASHBOARD_PASSWORD) return new NextResponse('DASHBOARD_PASSWORD not set', { status: 500 });
   if (req.cookies.get('auth')?.value === (await authToken())) return NextResponse.next();
