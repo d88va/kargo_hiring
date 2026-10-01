@@ -72,8 +72,8 @@ export default function CandidateRow({ r, rank, threshold }: { r: Row; rank: num
 
           <p className="lbl" style={{ marginTop: 24 }}>Contact · private, never sent to AI</p>
           <div className="row">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" autoComplete="off" name="cand-name" />
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" autoComplete="off" name="cand-email" type="text" />
             <button className="sec" disabled={busy} onClick={savePii}>Save</button>
           </div>
         </div>
