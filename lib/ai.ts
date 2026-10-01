@@ -8,13 +8,13 @@ async function gemini(prompt: string, schema?: object, maxOutputTokens = 4000): 
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY! },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens, temperature: 0.3, ...(schema ? { responseMimeType: 'application/json', responseSchema: schema } : {}) },
+      generationConfig: { maxOutputTokens, temperature: 0.3, ...(/flash/.test(MODEL) ? { thinkingConfig: { thinkingBudget: 0 } } : {}), ...(schema ? { responseMimeType: 'application/json', responseSchema: schema } : {}) },
     }),
   });
   const j = await res.json();
   if (!res.ok) throw new Error(`Gemini error: ${j?.error?.message ?? res.status}`);
   const text = j?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? '').join('') ?? '';
-  if (!text) throw new Error('Gemini returned no text (possibly blocked)');
+  if (!text) throw new Error('Gemini returned no text: ' + (j?.promptFeedback?.blockReason ?? j?.candidates?.[0]?.finishReason ?? 'unknown'));
   return text.trim();
 }
 
@@ -73,8 +73,9 @@ ${cv}
 """`;
 
   for (let attempt = 0; attempt < 2; attempt++) {
+    const text = await gemini(prompt, schema, 8000); // real API errors propagate with their message
     let raw: { role: Role; position: number; score: number; reason: string }[] | undefined;
-    try { raw = JSON.parse(await gemini(prompt, schema, 8000)).scores; } catch { raw = undefined; }
+    try { raw = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '')).scores; } catch { throw new Error('Gemini returned unparseable output: ' + text.slice(0, 200)); }
     if (!raw) continue;
     const rows: ScoreRow[] = [];
     for (const c of criteria) {
