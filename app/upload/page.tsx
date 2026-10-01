@@ -29,18 +29,23 @@ export default function Upload() {
   }
 
   return (
-    <form onSubmit={submit}>
-      <h2>Upload CVs</h2>
-      <div className="row">
-        <select value={role} onChange={(e) => setRole(e.target.value as 'PM' | 'SPM')} style={{ width: 280 }}>
-          <option value="PM">Applied for: Product Manager</option>
-          <option value="SPM">Applied for: Senior Product Manager</option>
-        </select>
-        <input name="cv" type="file" accept=".pdf,.docx,.txt" multiple />
-        <button disabled={busy}>{busy ? 'Working…' : 'Upload'}</button>
+    <form onSubmit={submit} className="upl">
+      <h1>Upload CVs</h1>
+      <p className="muted" style={{ margin: '4px 0 24px' }}>Personal details are split off and stored privately. Only the rest of the CV is scored.</p>
+      <p className="lbl">Applied for</p>
+      <div className="seg" style={{ marginBottom: 20 }}>
+        {(['PM', 'SPM'] as const).map((r) => (
+          <a key={r} className={role === r ? 'on' : ''} onClick={() => setRole(r)} style={{ flex: 1, textAlign: 'center', cursor: 'pointer', padding: '8px 14px' }}>
+            {r === 'PM' ? 'Product Manager' : 'Senior Product Manager'}
+          </a>
+        ))}
       </div>
-      <p className="muted">All files in one go are tagged with the role above. PDF, DOCX or TXT.</p>
-      <table><tbody>{items.map((i) => <tr key={i.name}><td>{i.name}</td><td>{i.status}</td></tr>)}</tbody></table>
+      <div className="drop">
+        <input name="cv" type="file" accept=".pdf,.docx,.txt" multiple style={{ border: 0, background: 'transparent' }} />
+        <div className="muted" style={{ fontSize: 14, marginTop: 6 }}>PDF, DOCX or TXT. Several at once are fine and all get the role above.</div>
+      </div>
+      <div className="files">{items.map((i) => <div key={i.name}><span>{i.name}</span><span className="muted">{i.status}</span></div>)}</div>
+      <div style={{ marginTop: 20 }}><button disabled={busy}>{busy ? 'Working…' : 'Upload'}</button></div>
     </form>
   );
 }

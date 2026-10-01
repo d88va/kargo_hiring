@@ -38,47 +38,56 @@ export default function CandidateRow({ r, rank, threshold }: { r: Row; rank: num
   };
 
   const above = r.appliedScore != null && r.appliedScore >= threshold;
+  const chip = r.stage === 'failed' ? { c: 'fail', t: 'Failed' }
+    : r.stage !== 'drafted' ? { c: '', t: 'Processing…' }
+    : r.mail?.sent ? { c: 'sent', t: 'Sent' }
+    : r.mail ? { c: r.mail.kind === 'invite' ? 'invite' : '', t: r.mail.kind === 'invite' ? 'Invite' : 'Rejection' }
+    : { c: '', t: '–' };
   return (
     <details>
       <summary>
-        <span className="muted">#{rank}</span>
-        <span className="score">{r.appliedScore ?? '–'}</span>
-        <span className="name">{r.name || 'Name not found'} <span className="muted">· {r.otherRole} fit {r.otherScore ?? '–'}</span></span>
-        {r.stage === 'failed' && <span className="tag fail">failed</span>}
-        {r.stage !== 'failed' && r.stage !== 'drafted' && <span className="tag">{r.stage}…</span>}
-        {r.mail && <span className={`tag ${r.mail.kind}`}>{r.mail.sent ? 'sent' : r.mail.kind}</span>}
-        {r.appliedScore != null && <span className="tag">{above ? 'above line' : 'below line'}</span>}
+        <span className="muted">{rank}</span>
+        <span className="scorecell"><b>{r.appliedScore ?? '–'}</b><span className="bar"><i style={{ width: `${r.appliedScore ?? 0}%` }} /></span></span>
+        <span style={{ fontWeight: 600 }}>{r.name || 'Name not found'}{r.appliedScore != null && <span className="muted" style={{ fontWeight: 400, fontSize: 13 }}> · {above ? 'above line' : 'below line'}</span>}</span>
+        <span className="muted">{r.otherScore ?? '–'}</span>
+        <span><span className={`chip ${chip.c}`}>{chip.t}</span></span>
+        <span className="muted">⌄</span>
       </summary>
       <div className="body">
-        {r.stage !== 'drafted' ? (
-          <p className="err">{r.error ?? 'Not finished processing.'} <button className="sec" disabled={busy} onClick={retry}>Retry</button></p>
-        ) : null}
+        <div>
+          {r.stage !== 'drafted' && (
+            <p className="err">{r.error ?? 'Not finished processing.'} <button className="sec" disabled={busy} onClick={retry}>Retry</button></p>
+          )}
+          <p className="lbl">Interview brief</p>
+          <p style={{ margin: '0 0 24px' }}>{r.brief ?? <span className="muted">No brief (only the top candidates per role get one).</span>}</p>
 
-        <h4>Interview brief</h4>
-        <p>{r.brief ?? <span className="muted">No brief (only top candidates per role get one).</span>}</p>
+          <p className="lbl">Scores · {r.appliedRole} rubric</p>
+          {r.scores.map((x) => (
+            <div className="crit" key={x.name}>
+              <div className="h"><span>{x.name} <span className="muted">({x.weight}%)</span></span><b>{x.score}</b></div>
+              <div className="bar"><i style={{ width: `${x.score * 10}%` }} /></div>
+              <div className="r">{x.reason}</div>
+            </div>
+          ))}
 
-        <h4>Scores ({r.appliedRole} rubric)</h4>
-        <table><tbody>
-          {r.scores.map((s) => <tr key={s.name}><td>{s.name} <span className="muted">({s.weight}%)</span></td><td>{s.score}/10</td><td>{s.reason}</td></tr>)}
-        </tbody></table>
-
-        <h4>Contact (private, never sent to AI)</h4>
-        <div className="row">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
-          <button className="sec" disabled={busy} onClick={savePii}>Save</button>
+          <p className="lbl" style={{ marginTop: 24 }}>Contact · private, never sent to AI</p>
+          <div className="row">
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
+            <button className="sec" disabled={busy} onClick={savePii}>Save</button>
+          </div>
         </div>
 
         {r.mail && (
-          <>
-            <h4>Draft email ({r.mail.kind})</h4>
+          <div className="mail">
+            <p className="lbl" style={{ margin: 0 }}>Draft email · {r.mail.kind}</p>
             <input value={subject} onChange={(e) => setSubject(e.target.value)} disabled={r.mail.sent} />
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} disabled={r.mail.sent} style={{ marginTop: 8 }} />
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} disabled={r.mail.sent} />
             <div className="row">
               <button disabled={busy || r.mail.sent || !email} onClick={send}>{r.mail.sent ? 'Sent' : 'Send via Resend'}</button>
-              <span className={msg === 'Sent' || msg === 'Saved' ? 'muted' : 'err'}>{msg}</span>
+              <span className={msg === 'Sent' || msg === 'Saved' ? 'muted' : 'err'}>{msg || (r.mail.sent ? '' : 'Asks you to confirm first')}</span>
             </div>
-          </>
+          </div>
         )}
       </div>
     </details>

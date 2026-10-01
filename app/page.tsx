@@ -6,7 +6,8 @@ import CandidateRow, { Row } from '@/components/CandidateRow';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Dashboard() {
+export default async function Dashboard({ searchParams }: { searchParams: { role?: string } }) {
+  const filter = searchParams.role === 'PM' || searchParams.role === 'SPM' ? searchParams.role : 'ALL';
   const results = await Promise.all([
     db.from('candidates').select('id, role_applied, stage, error, pm_score, spm_score'),
     db.from('candidate_pii').select('candidate_id, name, email'),
@@ -40,18 +41,38 @@ export default async function Dashboard() {
     };
   };
 
+  const all = (cands ?? []) as any[];
+  const score = (c: any) => Number(c[c.role_applied === 'PM' ? 'pm_score' : 'spm_score']);
+  const above = all.filter((c) => c.stage !== 'failed' && (c.pm_score != null || c.spm_score != null) && score(c) >= SCORE_THRESHOLD).length;
+  const waiting = all.filter((c) => { const m: any = mailMap.get(c.id); return m && !m.sent_at; }).length;
+  const tab = (value: string, label: string) => (
+    <Link href={value === 'ALL' ? '/' : `/?role=${value}`} className={filter === value ? 'on' : ''}>{label}</Link>
+  );
+
   return (
     <>
+      <div className="pagehead">
+        <div>
+          <h1>Candidates</h1>
+          <p className="muted" style={{ margin: '4px 0 0' }}>Ranked by score for the role they applied to. Nothing is sent until you click Send.</p>
+        </div>
+        <div className="seg">{tab('ALL', 'All')}{tab('PM', 'Product Manager')}{tab('SPM', 'Senior PM')}</div>
+      </div>
       {errors.length > 0 && <p className="err">Database error: {errors.join(' | ')}</p>}
-      <p className="muted">{(cands ?? []).length} candidate(s) in database</p>
-      {(cands ?? []).length === 0 && <p>No candidates yet. <Link href="/upload">Upload CVs</Link>.</p>}
-      {ROLES.map((role) => {
-        const rows = (cands ?? []).filter((c: any) => c.role_applied === role).map(build)
+      <div className="stats">
+        <div className="stat"><small>Candidates</small><b>{all.length}</b></div>
+        <div className="stat"><small>Above the line ({SCORE_THRESHOLD})</small><b style={{ color: '#14573C' }}>{above}</b></div>
+        <div className="stat"><small>Emails waiting to send</small><b>{waiting}</b></div>
+      </div>
+      {all.length === 0 && <p>No candidates yet. <Link href="/upload">Upload CVs</Link>.</p>}
+      {ROLES.filter((r) => filter === 'ALL' || filter === r).map((role) => {
+        const rows = all.filter((c) => c.role_applied === role).map(build)
           .sort((a, b) => (b.appliedScore ?? -1) - (a.appliedScore ?? -1));
         if (!rows.length) return null;
         return (
           <section key={role}>
-            <h2>{role === 'PM' ? 'Product Manager' : 'Senior Product Manager'} <span className="muted">({rows.length}, line at {SCORE_THRESHOLD})</span></h2>
+            <h2>{role === 'PM' ? 'Product Manager' : 'Senior Product Manager'} <span className="muted" style={{ fontWeight: 400, fontSize: 14 }}>· {rows.length}</span></h2>
+            <div className="cols"><span>#</span><span>Score</span><span>Candidate</span><span>{role === 'PM' ? 'SPM' : 'PM'} fit</span><span>Email</span><span></span></div>
             {rows.map((r, i) => <CandidateRow key={r.id} r={r} rank={i + 1} threshold={SCORE_THRESHOLD} />)}
           </section>
         );
